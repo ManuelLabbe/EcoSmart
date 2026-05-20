@@ -1,0 +1,14 @@
+{
+  "n_train": 9661,
+  "contamination": 0.034,
+  "n_estimators": 200,
+  "features": [
+    "Air temperature [K]",
+    "Process temperature [K]",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "Tool wear [min]",
+    "Type_enc"
+  ],
+  "random_state": 42
+}

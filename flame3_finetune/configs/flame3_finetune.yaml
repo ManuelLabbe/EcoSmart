@@ -1,0 +1,47 @@
+# leap-finetune config for FLAME 3 wildfire detection.
+# Designed to run on a single H100 (80GB). Edit the absolute paths under
+# `dataset:` and `benchmarks:` to match where you put the data on the H100 box
+# (or use relative paths if you run leap-finetune from the same parent dir).
+
+project_name: "flame3-wildfire"
+model_name: "lfm2.5-VL-450M"
+training_type: "vlm_sft"
+
+dataset:
+  path: "/workspace/flame3/train.jsonl"
+  type: "vlm_sft"
+  image_root: "/workspace/flame3/images"
+  test_size: 0.0  # we already have a held-out test.jsonl for benchmarks
+
+training_config:
+  extends: "DEFAULT_VLM_SFT"
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 8
+  learning_rate: 2e-5
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.03
+  seed: 42
+  eval_on_start: true
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  logging_steps: 5
+  # tracker: "trackio"
+  # trackio_space_id: "<your-hf-username>/flame3-finetune"
+
+# Full fine-tuning, not LoRA. Mirrors the cookbook decision: UAV imagery is
+# underrepresented in standard VLM pretraining, so the multimodal projector
+# benefits from re-learning how to map RGB+thermal patches into useful tokens.
+# At 450M params this fits a single H100.
+peft_config:
+  extends: "DEFAULT_VLM_LORA"
+  use_peft: false
+
+# Per-epoch eval on the held-out 20% test set (147 samples).
+benchmarks:
+  image_root: "/workspace/flame3/images"
+  benchmarks:
+    - name: "flame3_eval"
+      path: "/workspace/flame3/test.jsonl"
+      metric: "short_answer"
+      max_new_tokens: 256

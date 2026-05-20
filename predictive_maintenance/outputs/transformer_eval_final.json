@@ -1,0 +1,39 @@
+{
+  "auc_macro_valid_labels": 0.7204,
+  "machine_failure_auc": 0.7019,
+  "machine_failure_f1_optimal": 0.168,
+  "machine_failure_recall": 0.4559,
+  "per_label": {
+    "TWF": {
+      "auc": 0.9529,
+      "best_threshold": 0.919,
+      "best_f1": 0.143,
+      "n_pos_test": 5
+    },
+    "HDF": {
+      "auc": 0.9522,
+      "best_threshold": 0.617,
+      "best_f1": 0.26,
+      "n_pos_test": 29
+    },
+    "PWF": {
+      "auc": 0.4848,
+      "best_threshold": 0.457,
+      "best_f1": 0.024,
+      "n_pos_test": 18
+    },
+    "OSF": {
+      "auc": 0.9244,
+      "best_threshold": 0.904,
+      "best_f1": 0.174,
+      "n_pos_test": 19
+    },
+    "RNF": {
+      "auc": 0.2875,
+      "best_threshold": 0.056,
+      "best_f1": 0.005,
+      "n_pos_test": 5
+    }
+  },
+  "note_pwf_rnf": "PWF y RNF tienen se\u00f1al insuficiente \u2014 requieren m\u00e1s datos hist\u00f3ricos"
+}

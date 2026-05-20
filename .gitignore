@@ -1,0 +1,33 @@
+# Dataset de imágenes FLAME3 (7 GB)
+dataset/
+
+# Pesos del modelo fine-tuneado LFM2.5-VL (6.9 GB)
+flame3_finetune/model_finetuned/
+flame3_finetune/data/images/
+flame3_finetune/evals/
+
+# Pesos del Transformer PdM (modelo chico — sí se sube el .pt pequeño)
+# Solo excluir el Isolation Forest grande
+predictive_maintenance/models/isolation_forest.pkl
+
+# Checkpoints de leap-finetune
+flame3_finetune/leap-finetune/
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+*.egg-info/
+dist/
+build/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Conda / entornos
+*.conda
+envs/
+
+# Sistema
+.DS_Store
+*.log

@@ -1,0 +1,68 @@
+{
+  "roc_auc": 0.809,
+  "avg_precision": 0.1291,
+  "confusion_matrix": [
+    [
+      9332,
+      329
+    ],
+    [
+      274,
+      65
+    ]
+  ],
+  "classification_report": {
+    "normal": {
+      "precision": 0.9714761607328752,
+      "recall": 0.9659455542904462,
+      "f1-score": 0.9687029636165464,
+      "support": 9661.0
+    },
+    "falla": {
+      "precision": 0.1649746192893401,
+      "recall": 0.19174041297935104,
+      "f1-score": 0.17735334242837653,
+      "support": 339.0
+    },
+    "accuracy": 0.9397,
+    "macro avg": {
+      "precision": 0.5682253900111076,
+      "recall": 0.5788429836348986,
+      "f1-score": 0.5730281530224615,
+      "support": 10000.0
+    },
+    "weighted avg": {
+      "precision": 0.9441357584779394,
+      "recall": 0.9397,
+      "f1-score": 0.9418762114582674,
+      "support": 10000.0
+    }
+  },
+  "failure_detection_by_type": {
+    "TWF": {
+      "total": 46,
+      "detected": 6,
+      "rate": 0.13
+    },
+    "HDF": {
+      "total": 115,
+      "detected": 9,
+      "rate": 0.078
+    },
+    "PWF": {
+      "total": 95,
+      "detected": 43,
+      "rate": 0.453
+    },
+    "OSF": {
+      "total": 98,
+      "detected": 14,
+      "rate": 0.143
+    },
+    "RNF": {
+      "total": 19,
+      "detected": 1,
+      "rate": 0.053
+    }
+  }
+}

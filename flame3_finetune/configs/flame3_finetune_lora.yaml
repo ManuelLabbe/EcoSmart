@@ -1,0 +1,37 @@
+# Same as flame3_finetune.yaml but with LoRA. Useful if you only have a 24GB
+# GPU (RTX 4090/3090/A10) or want a faster cheaper sanity-check run.
+
+project_name: "flame3-wildfire-lora"
+model_name: "lfm2.5-VL-450M"
+training_type: "vlm_sft"
+
+dataset:
+  path: "/workspace/flame3/train.jsonl"
+  type: "vlm_sft"
+  image_root: "/workspace/flame3/images"
+  test_size: 0.0
+
+training_config:
+  extends: "DEFAULT_VLM_SFT"
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 1e-4
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.03
+  seed: 42
+  eval_strategy: "epoch"
+  save_strategy: "epoch"
+  logging_steps: 5
+
+peft_config:
+  extends: "DEFAULT_VLM_LORA"
+  use_peft: true
+
+benchmarks:
+  image_root: "/workspace/flame3/images"
+  benchmarks:
+    - name: "flame3_eval"
+      path: "/workspace/flame3/test.jsonl"
+      metric: "short_answer"
+      max_new_tokens: 256
