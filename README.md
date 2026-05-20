@@ -88,15 +88,6 @@ python -m ipykernel install --user --name ecosmart --display-name "ecosmart"
 jupyter lab
 ```
 
-### Obtener dataset AI4I 2020
-
-El archivo `ai4i2020.csv` está incluido en el repo (512 KB). Si necesitás descargarlo de nuevo:
-
-```bash
-# Con Kaggle CLI
-kaggle datasets download -d stephanmatzka/predictive-maintenance-dataset-ai4i-2020
-```
-
 ---
 
 ## Entrenamiento del Transformer (PdM)
