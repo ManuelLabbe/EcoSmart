@@ -57,7 +57,10 @@ comasa_hackaton/
     └── evals/                    # Resultados de evaluación (ignorados en git — ver nota)
 ```
 
-> **Nota datasets:** `dataset/` (imágenes FLAME3, 7 GB) y `flame3_finetune/model_finetuned/` (pesos LFM2.5-VL, 984 MB) están excluidos del repositorio por tamaño. Ver instrucciones abajo para obtenerlos.
+> **Nota datasets:** `dataset/` (imágenes FLAME3, 7 GB) está excluido por tamaño. Los pesos del modelo fine-tuneado están en HuggingFace:
+> ```bash
+> hf download ManuelLabbe/ecosmart-flame3-finetune --local-dir flame3_finetune/model_finetuned/
+> ```
 
 ---
 
