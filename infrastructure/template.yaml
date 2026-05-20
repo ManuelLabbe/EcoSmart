@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: EcoSmart POC — Metabase (EC2) + Athena + S3 + Glue
+
+# ── Parámetros ─────────────────────────────────────────────────────────────────
+Parameters:
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Nombre del Key Pair EC2 para acceso SSH
+
+  AllowedCidr:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: IP o rango CIDR con acceso a Metabase y SSH (ej. tu IP/32)
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: Tipo de instancia EC2 (t3.micro = ~$0.02/hora)
+
+# ── Recursos ───────────────────────────────────────────────────────────────────
+Resources:
+
+  # ── S3: datos de sensores ────────────────────────────────────────────────────
+  SensorDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ecosmart-sensor-data-${AWS::AccountId}
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldQueryResults
+            Status: Enabled
+            Prefix: query-results/
+            ExpirationInDays: 7
+
+  # ── Glue: catálogo de datos ──────────────────────────────────────────────────
+  SensorDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: ecosmart_sensors
+        Description: Base de datos de sensores industriales EcoSmart
+
+  # ── Athena: workgroup con output en S3 ──────────────────────────────────────
+  AthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: ecosmart-workgroup
+      Description: WorkGroup EcoSmart POC
+      WorkGroupConfiguration:
+        ResultConfiguration:
+          OutputLocation: !Sub s3://${SensorDataBucket}/query-results/
+        EnforceWorkGroupConfiguration: true
+        PublishCloudWatchMetricsEnabled: false
+        BytesScannedCutoffPerQuery: 104857600  # 100 MB max por query (safety)
+
+  # ── IAM: rol para que EC2 acceda a Athena + S3 + Glue ───────────────────────
+  MetabaseEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecosmart-metabase-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
+      Policies:
+        - PolicyName: S3SensorDataAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt SensorDataBucket.Arn
+                  - !Sub ${SensorDataBucket.Arn}/*
+        - PolicyName: GlueReadAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetTable
+                  - glue:GetTables
+                  - glue:GetPartition
+                  - glue:GetPartitions
+                Resource: '*'
+
+  MetabaseInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: ecosmart-metabase-profile
+      Roles:
+        - !Ref MetabaseEC2Role
+
+  # ── Security Group: puertos Metabase (3000) y SSH (22) ──────────────────────
+  MetabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EcoSmart Metabase access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: !Ref AllowedCidr
+          Description: Metabase web UI
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedCidr
+          Description: SSH
+
+  # ── EC2: instancia con Metabase en Docker ────────────────────────────────────
+  MetabaseInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      # Amazon Linux 2023 (latest) — resuelto via SSM Parameter Store
+      ImageId: !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      KeyName: !Ref KeyPairName
+      IamInstanceProfile: !Ref MetabaseInstanceProfile
+      SecurityGroups:
+        - !Ref MetabaseSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20      # 20 GB — ~$1.60/mes cuando EC2 está apagado
+            VolumeType: gp3
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          dnf update -y
+          dnf install -y docker
+          systemctl start docker
+          systemctl enable docker
+          usermod -aG docker ec2-user
+
+          # Metabase CE en Docker — se reinicia solo al encender la instancia
+          docker run -d \
+            --name metabase \
+            --restart unless-stopped \
+            -p 3000:3000 \
+            -v /home/ec2-user/metabase-data:/metabase-data \
+            -e MB_DB_FILE=/metabase-data/metabase.db \
+            metabase/metabase:latest
+
+          # Guardar nombre del bucket como variable de entorno
+          echo "SENSOR_BUCKET=${SensorDataBucket}" >> /etc/environment
+          echo "ATHENA_WORKGROUP=ecosmart-workgroup" >> /etc/environment
+          echo "AWS_DEFAULT_REGION=${AWS::Region}" >> /etc/environment
+      Tags:
+        - Key: Name
+          Value: ecosmart-metabase
+        - Key: Project
+          Value: EcoSmart
+
+# ── Outputs ────────────────────────────────────────────────────────────────────
+Outputs:
+
+  MetabaseURL:
+    Description: URL de Metabase (disponible ~3 min después de encender la instancia)
+    Value: !Sub http://${MetabaseInstance.PublicDnsName}:3000
+
+  MetabasePublicIP:
+    Description: IP pública de la instancia (cambia al reiniciar)
+    Value: !GetAtt MetabaseInstance.PublicIp
+
+  SensorDataBucket:
+    Description: Bucket S3 donde subir los datos de sensores
+    Value: !Ref SensorDataBucket
+
+  AthenaWorkGroup:
+    Description: WorkGroup de Athena para queries
+    Value: !Ref AthenaWorkGroup
+
+  GlueDatabase:
+    Description: Base de datos Glue / Athena
+    Value: !Ref SensorDatabase
+
+  SSHCommand:
+    Description: Comando SSH para conectarse a la instancia
+    Value: !Sub ssh -i ~/.ssh/${KeyPairName}.pem ec2-user@${MetabaseInstance.PublicDnsName}
