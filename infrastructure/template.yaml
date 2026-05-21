@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: EcoSmart POC — Metabase (EC2) + Athena + S3 + Glue
+Description: EcoSmart POC — Metabase (EC2) + Athena + S3 + Glue + IoT Core (ESP32)
 
 # ── Parámetros ─────────────────────────────────────────────────────────────────
 Parameters:
@@ -34,6 +34,88 @@ Resources:
             Status: Enabled
             Prefix: query-results/
             ExpirationInDays: 7
+
+  # ── IoT Core: Thing (ESP32) ─────────────────────────────────────────────────
+  EcoSmartThing:
+    Type: AWS::IoT::Thing
+    Properties:
+      ThingName: !Sub ecosmart-esp32-${AWS::AccountId}
+      AttributePayload:
+        Attributes:
+          project: EcoSmart
+          device_type: ESP32
+
+  # ── IoT Core: Policy (permisos del dispositivo) ──────────────────────────────
+  IoTDevicePolicy:
+    Type: AWS::IoT::Policy
+    Properties:
+      PolicyName: ecosmart-esp32-policy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: iot:Connect
+            Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/esp32-*
+          - Effect: Allow
+            Action: iot:Publish
+            Resource:
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/ecosmart/sensors/readings
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/ecosmart/sensors/alerts
+
+  # ── IAM: rol para que IoT Rules escriban en S3 ───────────────────────────────
+  IoTRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecosmart-iot-rule-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: IoTRuleS3Write
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub ${SensorDataBucket.Arn}/*
+
+  # ── IoT Rule: lecturas de sensores → S3 ─────────────────────────────────────
+  #   Cada mensaje MQTT se almacena como un JSON en sensor_readings/
+  #   El key usa substitution templates de IoT Core (no de CloudFormation)
+  IoTRuleReadings:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ecosmart_sensor_readings
+      TopicRulePayload:
+        Description: Guarda lecturas de sensores en S3
+        Sql: "SELECT * FROM 'ecosmart/sensors/readings'"
+        AwsIotSqlVersion: '2016-03-23'
+        Actions:
+          - S3:
+              BucketName: !Ref SensorDataBucket
+              Key: "sensor_readings/${equipment_id}/${timestamp()}.json"
+              RoleArn: !GetAtt IoTRuleRole.Arn
+        RuleDisabled: false
+
+  # ── IoT Rule: alertas → S3 ───────────────────────────────────────────────────
+  IoTRuleAlerts:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ecosmart_sensor_alerts
+      TopicRulePayload:
+        Description: Guarda alertas de anomalías en S3
+        Sql: "SELECT * FROM 'ecosmart/sensors/alerts'"
+        AwsIotSqlVersion: '2016-03-23'
+        Actions:
+          - S3:
+              BucketName: !Ref SensorDataBucket
+              Key: "alerts/${equipment_id}/${timestamp()}.json"
+              RoleArn: !GetAtt IoTRuleRole.Arn
+        RuleDisabled: false
 
   # ── Glue: catálogo de datos ──────────────────────────────────────────────────
   SensorDatabase:
@@ -194,3 +276,26 @@ Outputs:
   SSHCommand:
     Description: Comando SSH para conectarse a la instancia
     Value: !Sub ssh -i ~/.ssh/${KeyPairName}.pem ec2-user@${MetabaseInstance.PublicDnsName}
+
+  IoTThingArn:
+    Description: ARN del Thing ESP32 en IoT Core
+    Value: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:thing/ecosmart-esp32-${AWS::AccountId}
+
+  IoTThingName:
+    Description: Nombre del Thing (para asociar el certificado)
+    Value: !Sub ecosmart-esp32-${AWS::AccountId}
+
+  IoTPolicyName:
+    Description: Nombre de la Policy a adjuntar al certificado del ESP32
+    Value: !Ref IoTDevicePolicy
+
+  IoTEndpointCommand:
+    Description: Comando para obtener el endpoint MQTT (pegar en sdkconfig.defaults)
+    Value: aws iot describe-endpoint --endpoint-type iot:Data-ATS --query endpointAddress --output text
+
+  IoTAttachCertCommand:
+    Description: "Pasos post-deploy: (1) crear cert, (2) adjuntar policy y thing"
+    Value: !Sub >-
+      aws iot create-keys-and-certificate --set-as-active --certificate-pem-outfile main/certs/device_cert.pem --private-key-outfile main/certs/device_key.pem
+      && aws iot attach-policy --policy-name ecosmart-esp32-policy --target <CERT_ARN>
+      && aws iot attach-thing-principal --thing-name ecosmart-esp32-${AWS::AccountId} --principal <CERT_ARN>

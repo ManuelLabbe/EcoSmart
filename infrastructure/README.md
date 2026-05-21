@@ -5,7 +5,7 @@ Stack serverless con **Metabase en EC2** conectado a **Amazon Athena** sobre dat
 ## Arquitectura
 
 ```
-S3 (datos CSV)  ←→  Athena (SQL)  ←→  Metabase (EC2 t3.micro)
+ESP32 → MQTT/TLS → IoT Core → IoT Rules → S3 → Athena → Metabase (EC2)
 ```
 
 ## Costo estimado
@@ -95,3 +95,30 @@ aws athena start-query-execution \
 ```bash
 make destroy
 ```
+
+## Conectar ESP32 (después del deploy)
+
+El SAM template ya crea el **Thing**, la **Policy** y las **IoT Rules** automáticamente.
+Solo falta provisionar el certificado del dispositivo:
+
+```bash
+# 1. Genera cert y private key
+aws iot create-keys-and-certificate \
+  --set-as-active \
+  --certificate-pem-outfile ../esp32_firmware/main/certs/device_cert.pem \
+  --private-key-outfile ../esp32_firmware/main/certs/device_key.pem \
+  --query certificateArn --output text
+# Guarda el ARN que devuelve ↑
+
+# 2. Adjunta policy y Thing al certificado
+aws iot attach-policy --policy-name ecosmart-esp32-policy --target <CERT_ARN>
+aws iot attach-thing-principal \
+  --thing-name ecosmart-esp32-$(aws sts get-caller-identity --query Account --output text) \
+  --principal <CERT_ARN>
+
+# 3. Obtén el endpoint MQTT para el firmware
+aws iot describe-endpoint --endpoint-type iot:Data-ATS \
+  --query endpointAddress --output text
+```
+
+Luego sigue las instrucciones en `../esp32_firmware/README.md`.
