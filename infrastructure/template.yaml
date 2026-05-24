@@ -250,6 +250,92 @@ Resources:
         - Key: Project
           Value: EcoSmart
 
+  # ── IAM: rol para Lambda MCP ────────────────────────────────────────────────
+  MCPLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecosmart-mcp-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AthenaS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - athena:StartQueryExecution
+                  - athena:GetQueryExecution
+                  - athena:GetQueryResults
+                  - athena:StopQueryExecution
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - !GetAtt SensorDataBucket.Arn
+                  - !Sub ${SensorDataBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetTable
+                  - glue:GetTables
+                  - glue:GetPartitions
+                Resource: '*'
+
+  # ── Lambda: MCP server ───────────────────────────────────────────────────────
+  MCPFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ecosmart-mcp-server
+      Handler: handler.lambda_handler
+      Runtime: python3.12
+      CodeUri: mcp_lambda/
+      Timeout: 30
+      MemorySize: 256
+      Role: !GetAtt MCPLambdaRole.Arn
+      Environment:
+        Variables:
+          ATHENA_WORKGROUP: ecosmart-workgroup
+          S3_OUTPUT: !Sub s3://${SensorDataBucket}/query-results/
+      Events:
+        McpPost:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MCPHttpApi
+            Path: /mcp
+            Method: POST
+        McpOptions:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MCPHttpApi
+            Path: /mcp
+            Method: OPTIONS
+
+  # ── API Gateway HTTP API ─────────────────────────────────────────────────────
+  MCPHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+
 # ── Outputs ────────────────────────────────────────────────────────────────────
 Outputs:
 
@@ -292,6 +378,10 @@ Outputs:
   IoTEndpointCommand:
     Description: Comando para obtener el endpoint MQTT (pegar en sdkconfig.defaults)
     Value: aws iot describe-endpoint --endpoint-type iot:Data-ATS --query endpointAddress --output text
+
+  MCPServerURL:
+    Description: URL del MCP server (usar en Claude Code como mcp server URL)
+    Value: !Sub https://${MCPHttpApi}.execute-api.${AWS::Region}.amazonaws.com/prod/mcp
 
   IoTAttachCertCommand:
     Description: "Pasos post-deploy: (1) crear cert, (2) adjuntar policy y thing"

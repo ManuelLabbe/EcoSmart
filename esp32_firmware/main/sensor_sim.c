@@ -4,6 +4,16 @@
 
 static uint32_t reading_counter = 0;
 
+/* LoRa sensor nodes aggregated by this ESP32 gateway */
+typedef struct { const char *id; const char *name; } lora_node_t;
+static const lora_node_t LORA_NODES[] = {
+    { "lora-cal-001",  "Caldera N\xc2\xb01"          },
+    { "lora-mol-001",  "Molino Biomasa"               },
+    { "lora-cin-001",  "Cinta Transportadora"         },
+    { "lora-gen-001",  "Generador Turbina"            },
+};
+#define N_NODES (sizeof(LORA_NODES) / sizeof(LORA_NODES[0]))
+
 /* Linear congruential float in [lo, hi] using esp_random() */
 static float rand_float(float lo, float hi)
 {
@@ -25,6 +35,11 @@ void sensor_sim_next(sensor_reading_t *out)
 {
     memset(out, 0, sizeof(*out));
     reading_counter++;
+
+    /* Assign LoRa node round-robin */
+    const lora_node_t *node = &LORA_NODES[reading_counter % N_NODES];
+    strncpy(out->node_id,   node->id,   sizeof(out->node_id)   - 1);
+    strncpy(out->node_name, node->name, sizeof(out->node_name) - 1);
 
     /* ~5 % de lecturas inyectan una anomalía */
     int inject = (esp_random() % 100) < 5;

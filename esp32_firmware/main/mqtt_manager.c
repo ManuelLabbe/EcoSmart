@@ -89,11 +89,13 @@ void mqtt_app_start(void)
 /* Construye y publica el JSON de lectura de sensor */
 void mqtt_publish_reading(const sensor_reading_t *r, uint32_t seq)
 {
-    char payload[512];
+    char payload[640];
     int n = snprintf(payload, sizeof(payload),
         "{"
         "\"reading_id\":%lu,"
         "\"equipment_id\":\"%s\","
+        "\"node_id\":\"%s\","
+        "\"node_name\":\"%s\","
         "\"equipment_type\":\"lathe\","
         "\"product_type\":\"L\","
         "\"air_temp_k\":%.2f,"
@@ -110,6 +112,8 @@ void mqtt_publish_reading(const sensor_reading_t *r, uint32_t seq)
         "}",
         (unsigned long)seq,
         CONFIG_DEVICE_ID,
+        r->node_id,
+        r->node_name,
         r->air_temp_k, r->process_temp_k,
         r->rpm, r->torque_nm, r->tool_wear_min,
         r->anomaly_score, r->predicted_failure,
@@ -135,10 +139,12 @@ void mqtt_publish_reading(const sensor_reading_t *r, uint32_t seq)
                              : r->anomaly_score >= 0.80f ? "high"
                              : r->anomaly_score >= 0.65f ? "medium" : "low";
 
-        char alert[384];
+        char alert[512];
         int m = snprintf(alert, sizeof(alert),
             "{"
             "\"equipment_id\":\"%s\","
+            "\"node_id\":\"%s\","
+            "\"node_name\":\"%s\","
             "\"failure_mode\":\"%s\","
             "\"probability\":%.4f,"
             "\"severity\":\"%s\","
@@ -147,7 +153,7 @@ void mqtt_publish_reading(const sensor_reading_t *r, uint32_t seq)
             "\"rpm\":%d,\"torque_nm\":%.2f,\"tool_wear_min\":%d,"
             "\"resolved\":0"
             "}",
-            CONFIG_DEVICE_ID, mode, max_p, severity,
+            CONFIG_DEVICE_ID, r->node_id, r->node_name, mode, max_p, severity,
             r->anomaly_score,
             r->air_temp_k, r->process_temp_k,
             r->rpm, r->torque_nm, r->tool_wear_min

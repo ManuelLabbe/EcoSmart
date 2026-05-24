@@ -2,6 +2,8 @@
 #include <stdint.h>
 
 typedef struct {
+    char    node_id[20];      /* LoRa node that sourced this reading */
+    char    node_name[40];    /* Human-readable node label           */
     float   air_temp_k;
     float   process_temp_k;
     int     rpm;

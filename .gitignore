@@ -1,3 +1,15 @@
+# ── Credenciales y secretos ────────────────────────────────────
+esp32_firmware/main/certs/device_key.pem
+esp32_firmware/main/certs/device_cert.pem
+esp32_firmware/sdkconfig.defaults
+esp32_firmware/sdkconfig
+esp32_firmware/sdkconfig.old
+
+# ── Build artifacts ESP-IDF ─────────────────────────────────────
+esp32_firmware/build/
+esp32_firmware/managed_components/
+infrastructure/.aws-sam/
+
 # Dataset de imágenes FLAME3 (7 GB)
 dataset/
 

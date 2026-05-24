@@ -4,6 +4,7 @@ idf_component_register(
         "wifi_manager.c"
         "mqtt_manager.c"
         "sensor_sim.c"
+        "sensor_transformer.c"
     INCLUDE_DIRS "."
 )
 

@@ -19,7 +19,6 @@ TARGET_COL = "Machine failure"
 
 def load_data() -> pd.DataFrame:
     df = pd.read_csv(DATA_DIR / "ai4i2020.csv")
-    # Codificar tipo de producto (L=0, M=1, H=2)
     df["Type_enc"] = df["Type"].map({"L": 0, "M": 1, "H": 2})
     return df
 

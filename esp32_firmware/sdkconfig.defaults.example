@@ -1,0 +1,28 @@
+# Copiar a sdkconfig.defaults y completar con valores reales
+# Este archivo NO contiene credenciales reales
+
+# WiFi
+CONFIG_ESP_WIFI_SSID="tu_red_wifi"
+CONFIG_ESP_WIFI_PASSWORD="tu_password_wifi"
+CONFIG_ESP_MAXIMUM_RETRY=5
+
+# AWS IoT Core endpoint (obtener con: aws iot describe-endpoint --endpoint-type iot:Data-ATS)
+CONFIG_AWS_IOT_ENDPOINT="xxxxxxxxxx-ats.iot.us-east-1.amazonaws.com"
+CONFIG_AWS_IOT_PORT=8883
+CONFIG_DEVICE_ID="esp32-mach-001"
+
+# Sensor publish interval en ms
+CONFIG_SENSOR_INTERVAL_MS=5000
+
+# Stack y logging
+CONFIG_MQTT_TASK_STACK_SIZE=8192
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# mbedTLS — necesario para TLS con AWS
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN=16384
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=32768

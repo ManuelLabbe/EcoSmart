@@ -1,0 +1,41 @@
+menu "EcoSmart Configuration"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID de la red WiFi a la que conectarse.
+
+    config ESP_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            Contraseña de la red WiFi.
+
+    config ESP_MAXIMUM_RETRY
+        int "WiFi max retries"
+        default 5
+
+    config AWS_IOT_ENDPOINT
+        string "AWS IoT Core endpoint"
+        default "xxxxxxxxxxxx-ats.iot.us-east-1.amazonaws.com"
+        help
+            Host del endpoint MQTT de AWS IoT Core (sin https://).
+
+    config AWS_IOT_PORT
+        int "AWS IoT Core MQTT port"
+        default 8883
+
+    config DEVICE_ID
+        string "Device ID"
+        default "esp32-mach-001"
+        help
+            Identificador del dispositivo publicado en el payload JSON.
+
+    config SENSOR_INTERVAL_MS
+        int "Sensor publish interval (ms)"
+        default 5000
+        help
+            Intervalo en milisegundos entre lecturas de sensores.
+
+endmenu
