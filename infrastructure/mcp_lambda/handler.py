@@ -143,6 +143,164 @@ def tool_get_equipment_summary(args: dict) -> str:
     return json.dumps(rows, indent=2)
 
 
+def tool_get_node_trend(args: dict) -> str:
+    node    = args.get("node_id", "")
+    limit   = min(int(args.get("limit", 50)), 200)
+    if not node:
+        return json.dumps({"error": "node_id is required"})
+    sql = f"""
+        SELECT reading_id, node_name,
+               ROUND(anomaly_score, 4)     AS anomaly_score,
+               predicted_failure,
+               ROUND(air_temp_k, 2)        AS air_temp_k,
+               ROUND(process_temp_k, 2)    AS process_temp_k,
+               rpm,
+               ROUND(torque_nm, 2)         AS torque_nm,
+               tool_wear_min
+        FROM sensor_readings
+        WHERE node_id = '{node}'
+        ORDER BY reading_id DESC
+        LIMIT {limit}
+    """
+    rows = run_query(sql)
+    rows.reverse()  # cronológico ascendente para visualizar tendencia
+    return json.dumps(rows, indent=2)
+
+
+def tool_get_top_risk_equipment(args: dict) -> str:
+    limit = min(int(args.get("limit", 5)), 20)
+    sql = f"""
+        SELECT
+            node_id,
+            node_name,
+            equipment_id,
+            COUNT(*)                                                        AS total_readings,
+            ROUND(AVG(anomaly_score), 4)                                    AS avg_score,
+            ROUND(MAX(anomaly_score), 4)                                    AS max_score,
+            SUM(predicted_failure)                                          AS total_failures,
+            SUM(CASE WHEN anomaly_score >= 0.65 THEN 1 ELSE 0 END)         AS readings_in_alert,
+            ROUND(100.0 * SUM(CASE WHEN anomaly_score >= 0.65 THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_in_alert
+        FROM sensor_readings
+        WHERE node_id <> ''
+        GROUP BY node_id, node_name, equipment_id
+        ORDER BY avg_score DESC
+        LIMIT {limit}
+    """
+    rows = run_query(sql)
+    return json.dumps(rows, indent=2)
+
+
+def tool_get_failure_mode_heatmap(args: dict) -> str:
+    sql = """
+        SELECT
+            node_name,
+            ROUND(AVG(prob_twf), 4) AS prob_twf,
+            ROUND(AVG(prob_hdf), 4) AS prob_hdf,
+            ROUND(AVG(prob_pwf), 4) AS prob_pwf,
+            ROUND(AVG(prob_osf), 4) AS prob_osf,
+            ROUND(AVG(prob_rnf), 4) AS prob_rnf,
+            ROUND(AVG(anomaly_score), 4) AS avg_anomaly_score,
+            CASE
+                WHEN AVG(prob_twf) = GREATEST(AVG(prob_twf),AVG(prob_hdf),AVG(prob_pwf),AVG(prob_osf),AVG(prob_rnf)) THEN 'TWF'
+                WHEN AVG(prob_hdf) = GREATEST(AVG(prob_twf),AVG(prob_hdf),AVG(prob_pwf),AVG(prob_osf),AVG(prob_rnf)) THEN 'HDF'
+                WHEN AVG(prob_pwf) = GREATEST(AVG(prob_twf),AVG(prob_hdf),AVG(prob_pwf),AVG(prob_osf),AVG(prob_rnf)) THEN 'PWF'
+                WHEN AVG(prob_osf) = GREATEST(AVG(prob_twf),AVG(prob_hdf),AVG(prob_pwf),AVG(prob_osf),AVG(prob_rnf)) THEN 'OSF'
+                ELSE 'RNF'
+            END AS dominant_failure_mode
+        FROM sensor_readings
+        WHERE node_id <> ''
+        GROUP BY node_name
+        ORDER BY avg_anomaly_score DESC
+    """
+    rows = run_query(sql)
+    return json.dumps(rows, indent=2)
+
+
+def tool_run_diagnostic(args: dict) -> str:
+    node      = args.get("node_id", "")
+    equipment = args.get("equipment_id", "")
+    if not node and not equipment:
+        return json.dumps({"error": "Provide node_id or equipment_id"})
+
+    filter_col = "node_id" if node else "equipment_id"
+    filter_val = node or equipment
+
+    stats_sql = f"""
+        SELECT
+            node_id, node_name, equipment_id,
+            COUNT(*)                                                         AS total_readings,
+            ROUND(AVG(anomaly_score), 4)                                     AS avg_score,
+            ROUND(MAX(anomaly_score), 4)                                     AS max_score,
+            SUM(predicted_failure)                                           AS total_failures,
+            ROUND(AVG(prob_twf), 4) AS avg_prob_twf,
+            ROUND(AVG(prob_hdf), 4) AS avg_prob_hdf,
+            ROUND(AVG(prob_pwf), 4) AS avg_prob_pwf,
+            ROUND(AVG(prob_osf), 4) AS avg_prob_osf,
+            ROUND(AVG(prob_rnf), 4) AS avg_prob_rnf,
+            ROUND(AVG(air_temp_k), 2)     AS avg_air_temp_k,
+            ROUND(AVG(process_temp_k), 2) AS avg_process_temp_k,
+            ROUND(AVG(rpm), 0)            AS avg_rpm,
+            ROUND(AVG(torque_nm), 2)      AS avg_torque_nm,
+            ROUND(AVG(tool_wear_min), 1)  AS avg_tool_wear_min
+        FROM sensor_readings
+        WHERE {filter_col} = '{filter_val}'
+        GROUP BY node_id, node_name, equipment_id
+    """
+
+    recent_sql = f"""
+        SELECT ROUND(AVG(anomaly_score), 4) AS recent_avg_score,
+               SUM(predicted_failure)       AS recent_failures
+        FROM (
+            SELECT anomaly_score, predicted_failure
+            FROM sensor_readings
+            WHERE {filter_col} = '{filter_val}'
+            ORDER BY reading_id DESC
+            LIMIT 20
+        )
+    """
+
+    alerts_sql = f"""
+        SELECT failure_mode, severity, COUNT(*) AS count,
+               ROUND(MAX(anomaly_score), 4) AS max_score
+        FROM alerts
+        WHERE {filter_col} = '{filter_val}'
+        GROUP BY failure_mode, severity
+        ORDER BY max_score DESC
+        LIMIT 10
+    """
+
+    stats   = run_query(stats_sql)
+    recent  = run_query(recent_sql)
+    alerts  = run_query(alerts_sql)
+
+    probs = {}
+    if stats:
+        s = stats[0]
+        probs = {
+            "TWF": float(s.get("avg_prob_twf", 0)),
+            "HDF": float(s.get("avg_prob_hdf", 0)),
+            "PWF": float(s.get("avg_prob_pwf", 0)),
+            "OSF": float(s.get("avg_prob_osf", 0)),
+            "RNF": float(s.get("avg_prob_rnf", 0)),
+        }
+        dominant = max(probs, key=probs.get)
+        avg_score = float(s.get("avg_score", 0))
+        status = "CRÍTICO" if avg_score >= 0.80 else "ALERTA" if avg_score >= 0.65 else "NORMAL"
+    else:
+        dominant, status = "N/A", "SIN DATOS"
+
+    diagnostic = {
+        "status": status,
+        "node_id": filter_val,
+        "summary": stats[0] if stats else {},
+        "last_20_readings": recent[0] if recent else {},
+        "dominant_failure_mode": dominant,
+        "failure_mode_probabilities": probs,
+        "recent_alerts": alerts,
+    }
+    return json.dumps(diagnostic, indent=2)
+
+
 # ── MCP tool registry ─────────────────────────────────────────────────────────
 
 TOOLS = {
@@ -185,6 +343,47 @@ TOOLS = {
             "properties": {},
         },
         "fn": tool_list_nodes,
+    },
+    "get_node_trend": {
+        "description": "Get the chronological trend of anomaly scores and sensor values for a specific LoRa node. Use this to detect rising patterns before a failure threshold is crossed. Returns readings in ascending time order (oldest first).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "node_id": {"type": "string",  "description": "LoRa node ID to analyse (e.g. lora-cal-001). Required."},
+                "limit":   {"type": "integer", "description": "Number of readings to return (default 50, max 200)."},
+            },
+            "required": ["node_id"],
+        },
+        "fn": tool_get_node_trend,
+    },
+    "get_top_risk_equipment": {
+        "description": "Return the N nodes with the highest average anomaly score. Includes % of readings that crossed the alert threshold (0.65). Use this to answer 'what needs attention today?' or 'which equipment is most at risk?'.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "How many top-risk nodes to return (default 5, max 20)."},
+            },
+        },
+        "fn": tool_get_top_risk_equipment,
+    },
+    "get_failure_mode_heatmap": {
+        "description": "Per LoRa node, return the average probability of each failure mode (TWF, HDF, PWF, OSF, RNF) and the dominant failure mode. Use this to understand what type of failure is most likely per equipment and prioritise the right maintenance action.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+        },
+        "fn": tool_get_failure_mode_heatmap,
+    },
+    "run_diagnostic": {
+        "description": "Run a full diagnostic for a specific node or equipment. Returns: overall status (NORMAL/ALERTA/CRÍTICO), aggregate sensor stats, failure mode probabilities, dominant failure mode, last-20-reading trend, and recent alert history. Best used when an operator asks for a health report on a specific machine.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "node_id":      {"type": "string", "description": "LoRa node ID (e.g. lora-cal-001). Use this or equipment_id."},
+                "equipment_id": {"type": "string", "description": "Gateway ESP32 ID (e.g. esp32-mach-001). Use this or node_id."},
+            },
+        },
+        "fn": tool_run_diagnostic,
     },
 }
 
