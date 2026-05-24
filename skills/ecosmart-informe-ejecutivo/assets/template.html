@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!--
+  Template de Informe Ejecutivo EcoSmart / COMASA.
+  Copia esta estructura y reemplaza el contenido entre [[ ]] con datos reales.
+  Badges de estado: clase .status-normal / .status-alerta / .status-critico
+  El @media print deja el informe en 1 página A4 lista para PDF.
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Informe Ejecutivo — EcoSmart COMASA</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #1a2332; background: #eef1f5; padding: 24px;
+    font-size: 14px; line-height: 1.5;
+  }
+  .page {
+    max-width: 820px; margin: 0 auto; background: #fff;
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,.08);
+  }
+  header {
+    background: linear-gradient(120deg, #0e7c4a, #14a065);
+    color: #fff; padding: 24px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header .brand { font-size: 13px; letter-spacing: 2px; opacity: .85; text-transform: uppercase; }
+  header h1 { font-size: 22px; margin-top: 4px; }
+  header .meta { text-align: right; font-size: 13px; opacity: .9; }
+  .global-badge {
+    display: inline-block; margin-top: 8px; padding: 6px 16px;
+    border-radius: 20px; font-weight: 700; font-size: 14px;
+  }
+  .content { padding: 28px 32px; }
+  section { margin-bottom: 26px; }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
+    color: #0e7c4a; border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 6px; margin-bottom: 14px;
+  }
+  .exec-summary { font-size: 15px; line-height: 1.6; color: #2d3748; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card {
+    border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;
+    border-left: 5px solid #cbd5e0;
+  }
+  .card.critico { border-left-color: #dc2626; }
+  .card.alerta  { border-left-color: #d97706; }
+  .card.normal  { border-left-color: #16a34a; }
+  .card h3 { font-size: 15px; margin-bottom: 6px; }
+  .card .mode { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+  .card .action { font-size: 13px; }
+  .card .action b { color: #0e7c4a; }
+  .urgency { display:inline-block; margin-top:8px; font-size:11px; font-weight:700;
+             padding:3px 10px; border-radius:12px; background:#fef2f2; color:#dc2626; }
+  .status-normal  { background:#dcfce7; color:#16a34a; }
+  .status-alerta  { background:#fef3c7; color:#d97706; }
+  .status-critico { background:#fee2e2; color:#dc2626; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; background: #f8fafc; padding: 8px 10px; color: #475569; font-size: 11px; text-transform: uppercase; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+  footer { padding: 16px 32px; background: #f8fafc; color: #94a3b8; font-size: 11px; text-align: center; }
+  @media print { body { background:#fff; padding:0; } .page { box-shadow:none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <div class="brand">EcoSmart · COMASA</div>
+      <h1>Informe Ejecutivo de Planta</h1>
+    </div>
+    <div class="meta">
+      [[FECHA Y HORA]]<br>
+      <span class="global-badge status-[[normal|alerta|critico]]">PLANTA: [[ESTADO GLOBAL]]</span>
+    </div>
+  </header>
+
+  <div class="content">
+    <section>
+      <h2>Resumen ejecutivo</h2>
+      <p class="exec-summary">[[2-3 frases: estado general de la planta y el hallazgo más importante del periodo. Lenguaje de negocio.]]</p>
+    </section>
+
+    <section>
+      <h2>Equipos que requieren atención</h2>
+      <div class="cards">
+        <!-- Repite esta tarjeta por cada nodo en riesgo (top 2-3) -->
+        <div class="card [[critico|alerta|normal]]">
+          <h3>[[Nombre del equipo]] <span class="badge status-[[..]]">[[ESTADO]]</span></h3>
+          <div class="mode">Riesgo: [[modo de falla en lenguaje de negocio]]</div>
+          <div class="action"><b>Acción:</b> [[recomendación concreta]]</div>
+          <span class="urgency">[[URGENCIA: ej. Revisar en 48h]]</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Alertas críticas abiertas</h2>
+      <!-- Si no hay alertas críticas, reemplaza la tabla por: <p>Sin alertas críticas abiertas en el periodo.</p> -->
+      <table>
+        <tr><th>Equipo</th><th>Tipo de riesgo</th><th>Severidad</th><th>Score</th></tr>
+        <tr><td>[[equipo]]</td><td>[[modo]]</td><td>[[severidad]]</td><td>[[score]]</td></tr>
+      </table>
+    </section>
+  </div>
+
+  <footer>
+    Generado automáticamente por EcoSmart · Mantenimiento Predictivo con IA · Datos: AWS IoT Core / SensorTransformer on-device
+    [[· nota de respaldo si los datos no traen node_id]]
+  </footer>
+</div>
+</body>
+</html>

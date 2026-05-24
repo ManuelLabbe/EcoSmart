@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!--
+  Template de Análisis de Causa Raíz (RCA) EcoSmart / COMASA.
+  Copia la estructura y reemplaza [[ ]] con datos reales.
+  En la tabla de sensores marca la fila disparadora con class="trigger".
+  La línea de tiempo es texto interpretado; resume la evolución del score.
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Análisis de Causa Raíz — EcoSmart COMASA</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,"Segoe UI",Roboto,sans-serif; color:#1a2332;
+         background:#eef1f5; padding:24px; font-size:14px; line-height:1.55; }
+  .rca { max-width:820px; margin:0 auto; background:#fff; border-radius:10px;
+         overflow:hidden; box-shadow:0 2px 16px rgba(0,0,0,.08); }
+  header { background:linear-gradient(120deg,#312e81,#4338ca); color:#fff; padding:22px 30px; }
+  header .brand { font-size:12px; letter-spacing:2px; opacity:.75; text-transform:uppercase; }
+  header h1 { font-size:21px; margin:4px 0 10px; }
+  header .meta { font-size:13px; opacity:.92; }
+  header .meta span { display:inline-block; margin-right:18px; }
+  .content { padding:26px 30px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#4338ca;
+       border-bottom:2px solid #e2e8f0; padding-bottom:6px; margin:22px 0 12px; }
+  h2:first-child { margin-top:0; }
+  .timeline { background:#f8fafc; border-left:4px solid #4338ca; padding:12px 16px;
+              border-radius:6px; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; background:#f8fafc; padding:9px 10px; color:#475569;
+       font-size:11px; text-transform:uppercase; }
+  td { padding:9px 10px; border-bottom:1px solid #f1f5f9; }
+  tr.trigger { background:#fef2f2; }
+  tr.trigger td { font-weight:600; }
+  .trigger-tag { background:#dc2626; color:#fff; font-size:10px; padding:2px 8px;
+                 border-radius:10px; font-weight:700; }
+  .hypothesis { background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px;
+                padding:16px 18px; font-size:14px; line-height:1.6; }
+  .hypothesis .label { font-size:11px; text-transform:uppercase; letter-spacing:1px;
+                       color:#4338ca; font-weight:700; margin-bottom:6px; }
+  .reco { background:#f0fdf4; border-left:4px solid #16a34a; padding:12px 16px;
+          border-radius:6px; font-size:13px; }
+  footer { padding:14px 30px; background:#f8fafc; color:#94a3b8; font-size:11px; text-align:center; }
+  @media print { body { background:#fff; padding:0; } .rca { box-shadow:none; } }
+</style>
+</head>
+<body>
+<div class="rca">
+  <header>
+    <div class="brand">EcoSmart · COMASA · Ingeniería de Confiabilidad</div>
+    <h1>Análisis de Causa Raíz</h1>
+    <div class="meta">
+      <span><b>Equipo:</b> [[nombre]]</span>
+      <span><b>Nodo:</b> [[node_id]]</span>
+      <span><b>Alerta:</b> [[folio/fecha]]</span>
+      <span><b>Modo reportado:</b> [[MODO]]</span>
+    </div>
+  </header>
+
+  <div class="content">
+    <h2>Línea de tiempo del evento</h2>
+    <div class="timeline">
+      [[Cómo evolucionó el anomaly score: valor base, cuándo empezó a subir, abrupto o gradual, cuándo cruzó el umbral 0.65 y gatilló la alerta, valor pico.]]
+    </div>
+
+    <h2>Desviación de sensores</h2>
+    <table>
+      <tr><th>Variable</th><th>Valor en evento</th><th>Rango normal</th><th>Desviación</th><th></th></tr>
+      <!-- Marca con class="trigger" la(s) fila(s) disparadora(s) -->
+      <tr class="trigger">
+        <td>[[variable]]</td><td>[[valor]]</td><td>[[rango]]</td><td>[[desviación]]</td>
+        <td><span class="trigger-tag">DISPARADORA</span></td>
+      </tr>
+      <tr><td>[[variable]]</td><td>[[valor]]</td><td>[[rango]]</td><td>[[dentro de rango]]</td><td></td></tr>
+    </table>
+
+    <h2>Hipótesis de causa raíz</h2>
+    <div class="hypothesis">
+      <div class="label">Conclusión razonada</div>
+      [[La causa más probable, citando la evidencia de las secciones anteriores. Distingue hechos de interpretación. Sé honesto sobre el nivel de certeza.]]
+    </div>
+
+    <h2>Recomendación</h2>
+    <div class="reco">
+      [[Acción correctiva. Si amerita intervención mecánica, indica generar una Orden de Trabajo. Si es ambiguo, qué medir para confirmar.]]
+    </div>
+  </div>
+
+  <footer>
+    Investigación generada por EcoSmart · Alimenta la base de conocimiento de fallas de COMASA
+  </footer>
+</div>
+</body>
+</html>
