@@ -1,6 +1,6 @@
 ---
 name: ecosmart-orden-trabajo
-description: Genera órdenes de trabajo de mantención predictiva para COMASA a partir del MCP de EcoSmart (servidor "ecomasa"). Traduce la predicción del SensorTransformer en una instrucción accionable para el técnico en terreno: modo de falla, ventana de urgencia, checklist de intervención y repuestos probables. Usa esta skill siempre que el usuario pida una "orden de trabajo", "OT", "qué hay que hacerle al equipo X", "instrucción de mantención", "checklist de intervención", "generar trabajo para el técnico", o cuando una alerta crítica requiera convertirse en acción concreta. También cuando jefatura de mantención quiere bajar una predicción a tarea ejecutable.
+description: Genera órdenes de trabajo de mantención para COMASA desde el MCP de EcoSmart, con modo de falla, urgencia, checklist y repuestos. Úsala para "orden de trabajo", "OT" o instrucción al técnico.
 ---
 
 # Orden de Trabajo Predictiva — EcoSmart / COMASA

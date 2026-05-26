@@ -1,6 +1,6 @@
 ---
 name: ecosmart-investigacion-anomalia
-description: Realiza un análisis de causa raíz de anomalías y alertas para COMASA usando el MCP de EcoSmart (servidor "ecomasa"). Reconstruye la línea de tiempo del evento, identifica qué variable de sensor se desvió primero y cuánto, y propone una hipótesis de causa comparada contra el rango normal de operación. Usa esta skill siempre que el usuario pida "investigar una anomalía", "análisis de causa raíz", "por qué falló / saltó la alerta", "qué pasó con el equipo X", "RCA", "análisis post-evento", "investigar la alerta", o quiera entender el origen técnico de un evento en lugar de solo verlo. Dirigida a ingeniería de confiabilidad.
+description: Análisis de causa raíz de anomalías para COMASA desde el MCP de EcoSmart: línea de tiempo, sensor disparador e hipótesis. Úsala para "investigar alerta", "causa raíz", "RCA" o "por qué falló".
 ---
 
 # Investigación de Causa Raíz de Anomalías — EcoSmart / COMASA

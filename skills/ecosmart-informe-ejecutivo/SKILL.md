@@ -1,6 +1,6 @@
 ---
 name: ecosmart-informe-ejecutivo
-description: Genera un informe ejecutivo de salud de planta para COMASA a partir del MCP de EcoSmart (servidor "ecomasa"). Orquesta los tools de sensores y alertas para producir un reporte HTML de 1 página, en lenguaje de negocio, dirigido a gerencia. Usa esta skill siempre que el usuario pida un "informe ejecutivo", "reporte de planta", "estado general", "resumen para gerencia", "cómo está la planta hoy", "dashboard ejecutivo" o cualquier panorama de alto nivel del estado de los equipos. También aplica cuando alguien de jefatura quiere saber qué equipos requieren atención sin entrar en detalle técnico.
+description: Genera un informe ejecutivo HTML de salud de planta para COMASA desde el MCP de EcoSmart. Úsala para "informe ejecutivo", "reporte de planta", "estado general" o "resumen para gerencia".
 ---
 
 # Informe Ejecutivo de Salud de Planta — EcoSmart / COMASA
