@@ -301,6 +301,38 @@ def tool_run_diagnostic(args: dict) -> str:
     return json.dumps(diagnostic, indent=2)
 
 
+def tool_query_process_readings(args: dict) -> str:
+    limit        = min(int(args.get("limit", 20)), 100)
+    equipment    = args.get("equipment_id", "")
+    tag          = args.get("tag", "")
+    regime       = args.get("regime", "")
+    anomaly_only = args.get("anomaly_only", False)
+    filters = []
+    if equipment:
+        filters.append(f"equipment_id = '{equipment}'")
+    if tag:
+        filters.append(f"tag = '{tag}'")
+    if regime:
+        filters.append(f"regime = '{regime}'")
+    if anomaly_only:
+        filters.append("is_anomaly = 1")
+    where = ("WHERE " + " AND ".join(filters)) if filters else ""
+    sql = f"""
+        SELECT equipment_id, tag, variable, variable_medicion,
+               ROUND(CAST(value AS DOUBLE), 3)         AS value,
+               unit, regime,
+               ROUND(CAST(nominal_value AS DOUBLE), 3) AS nominal_value,
+               ROUND(CAST(deviation_pct AS DOUBLE), 2) AS deviation_pct,
+               is_anomaly, desde, hasta, timestamp
+        FROM process_readings
+        {where}
+        ORDER BY timestamp DESC
+        LIMIT {limit}
+    """
+    rows = run_query(sql)
+    return json.dumps(rows, indent=2)
+
+
 # ── MCP tool registry ─────────────────────────────────────────────────────────
 
 TOOLS = {
@@ -373,6 +405,20 @@ TOOLS = {
             "properties": {},
         },
         "fn": tool_get_failure_mode_heatmap,
+    },
+    "query_process_readings": {
+        "description": "Query water-steam cycle readings from COMASA plant (UG1/UG2 generators). Each reading includes the instrument TAG (e.g. FT_5001, TT_3101-1), measured value, unit, operating regime (MT/BL1/BL2), nominal design value from the plant balance sheet, and deviation %. Use this to detect process anomalies in the agua-vapor cycle and compare against design baselines.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit":        {"type": "integer", "description": "Max rows (default 20, max 100)"},
+                "equipment_id": {"type": "string",  "description": "Filter by generator: esp32-ug1-001 or esp32-ug2-001"},
+                "tag":          {"type": "string",  "description": "Filter by instrument TAG (e.g. FT_5001, TT_3101-1)"},
+                "regime":       {"type": "string",  "description": "Filter by operating regime: MT, BL1, or BL2"},
+                "anomaly_only": {"type": "boolean", "description": "If true, return only anomalous readings (deviation > 15%)"},
+            },
+        },
+        "fn": tool_query_process_readings,
     },
     "run_diagnostic": {
         "description": "Run a full diagnostic for a specific node or equipment. Returns: overall status (NORMAL/ALERTA/CRÍTICO), aggregate sensor stats, failure mode probabilities, dominant failure mode, last-20-reading trend, and recent alert history. Best used when an operator asks for a health report on a specific machine.",

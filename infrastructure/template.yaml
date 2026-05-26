@@ -117,6 +117,22 @@ Resources:
               RoleArn: !GetAtt IoTRuleRole.Arn
         RuleDisabled: false
 
+  # ── IoT Rule: lecturas proceso agua-vapor → S3 ──────────────────────────────
+  IoTRuleProcessReadings:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: ecosmart_process_readings
+      TopicRulePayload:
+        Description: Guarda lecturas del ciclo agua-vapor (UG1/UG2) en S3
+        Sql: "SELECT * FROM 'ecosmart/process/readings'"
+        AwsIotSqlVersion: '2016-03-23'
+        Actions:
+          - S3:
+              BucketName: !Ref SensorDataBucket
+              Key: "process_readings/${equipment_id}/${timestamp()}.json"
+              RoleArn: !GetAtt IoTRuleRole.Arn
+        RuleDisabled: false
+
   # ── Glue: catálogo de datos ──────────────────────────────────────────────────
   SensorDatabase:
     Type: AWS::Glue::Database
