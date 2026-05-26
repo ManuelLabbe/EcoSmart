@@ -1,4 +1,4 @@
-# EcoSmart — COMASA Hackathon 2026
+# EcoSmart
 
 Plataforma de inteligencia artificial para plantas termoeléctricas a biomasa. Combina **detección visual de incendios** (VLM fine-tuneado), **mantenimiento predictivo** (Transformer multi-label sobre sensores industriales), **monitoreo IoT en tiempo real** (ESP32 + AWS) y **agentes de IA conversacionales** (Claude MCP + Skills).
 
